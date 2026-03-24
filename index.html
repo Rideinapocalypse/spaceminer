@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Space Colony — Idle Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --px: #0ff;
+      --py: #ff0;
+      --pg: #0f0;
+      --pr: #f44;
+      --pb: #88f;
+      --po: #fa0;
+      --bg:  #0a0a1a;
+      --bg2: #111128;
+      --bg3: #1a1a38;
+      --border: #2a2a5a;
+      --text: #cce;
+      --dim:  #667;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      line-height: 1.6;
+    }
+
+    #game {
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      grid-template-rows: auto 1fr auto;
+      gap: 8px;
+      padding: 8px;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    #header {
+      grid-column: 1 / -1;
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    #header h1 { font-size: 10px; color: var(--px); text-shadow: 0 0 8px var(--px); }
+
+    .resources { display: flex; gap: 16px; margin-left: auto; flex-wrap: wrap; }
+    .res { display: flex; align-items: center; gap: 6px; font-size: 7px; }
+    .res-icon { font-size: 14px; line-height: 1; }
+    .res-val  { color: var(--py); min-width: 60px; }
+
+    /* ── Main panel ── */
+    #main {
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #colony-view {
+      position: relative;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      height: 200px;
+      overflow: hidden;
+      cursor: pointer;
+      user-select: none;
+    }
+    #colony-view:active { filter: brightness(1.3); }
+    #colony-canvas { display: block; width: 100%; height: 100%; }
+    #click-hint {
+      position: absolute;
+      bottom: 6px; right: 8px;
+      font-size: 6px;
+      color: var(--dim);
+      pointer-events: none;
+    }
+
+    #upgrades-title {
+      font-size: 8px;
+      color: var(--pg);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+    }
+
+    #upgrades {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .upg-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 8px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      transition: border-color .1s;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px;
+      align-items: center;
+    }
+    .upg-btn:hover:not(:disabled) { border-color: var(--py); background: #1a1a28; }
+    .upg-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .upg-name  { color: var(--px); font-size: 7px; margin-bottom: 3px; }
+    .upg-desc  { color: var(--dim); font-size: 5px; line-height: 1.5; }
+    .upg-cost  { color: var(--py); font-size: 7px; white-space: nowrap; }
+    .upg-count {
+      background: var(--pb);
+      color: #000;
+      font-size: 6px;
+      padding: 2px 4px;
+      border-radius: 2px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar { display: flex; flex-direction: column; gap: 8px; }
+
+    #stats-panel {
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      padding: 8px;
+    }
+    #stats-title {
+      font-size: 8px;
+      color: var(--po);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 6px;
+    }
+    .stat-label { color: var(--dim); }
+    .stat-val   { color: var(--pg); }
+
+    #log-panel {
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      padding: 8px;
+      flex: 1;
+    }
+    #log-title {
+      font-size: 8px;
+      color: var(--pb);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+    }
+    #log {
+      font-family: 'VT323', monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .log-line { border-left: 2px solid var(--border); padding-left: 4px; }
+    .log-line.good { border-color: var(--pg); color: #9fb; }
+    .log-line.info { border-color: var(--pb); color: #aaf; }
+
+    /* ── Footer ── */
+    #footer {
+      grid-column: 1 / -1;
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    #footer span { font-size: 6px; color: var(--dim); }
+
+    #prestige-btn {
+      background: transparent;
+      border: 1px solid var(--pr);
+      color: var(--pr);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      opacity: .5;
+      transition: opacity .2s;
+    }
+    #prestige-btn.ready {
+      opacity: 1;
+      animation: pulse 1s infinite alternate;
+    }
+
+    /* ── Floater ── */
+    .floater {
+      position: absolute;
+      animation: float-up 1s ease-out forwards;
+      pointer-events: none;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--py);
+    }
+
+    /* ── Animations ── */
+    @keyframes pulse {
+      from { box-shadow: none; }
+      to   { box-shadow: 0 0 8px var(--pr); }
+    }
+    @keyframes float-up {
+      0%   { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-40px); }
+    }
+
+    /* ── Scrollbar styling ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      #game { grid-template-columns: 1fr; }
+      #sidebar { grid-row: 3; }
+      #log { max-height: 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="game">
+
+  <!-- Header -->
+  <div id="header">
+    <h1>&#11088; SPACE COLONY</h1>
+    <div class="resources">
+      <div class="res">
+        <span class="res-icon">&#128301;</span>
+        <span>Credits:</span>
+        <span class="res-val" id="r-credits">0</span>
+      </div>
+      <div class="res">
+        <span class="res-icon">&#9889;</span>
+        <span>Energy:</span>
+        <span class="res-val" id="r-energy">0/s</span>
+      </div>
+      <div class="res">
+        <span class="res-icon">&#128081;</span>
+        <span>Pop:</span>
+        <span class="res-val" id="r-pop">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+    <div id="colony-view" onclick="handleClick(event)">
+      <canvas id="colony-canvas"></canvas>
+      <div id="click-hint">CLICK TO MINE</div>
+    </div>
+    <div id="upgrades-title">&#128736; BUILDINGS</div>
+    <div id="upgrades"></div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="stats-panel">
+      <div id="stats-title">&#128202; STATS</div>
+      <div class="stat-row"><span class="stat-label">Total earned</span><span class="stat-val" id="s-total">0</span></div>
+      <div class="stat-row"><span class="stat-label">Credits/sec</span><span class="stat-val" id="s-cps">0.0</span></div>
+      <div class="stat-row"><span class="stat-label">Hand-mined</span><span class="stat-val" id="s-clicks">0</span></div>
+      <div class="stat-row"><span class="stat-label">Run time</span><span class="stat-val" id="s-time">0s</span></div>
+      <div class="stat-row"><span class="stat-label">Milestones</span><span class="stat-val" id="s-mile">0</span></div>
+      <div class="stat-row"><span class="stat-label">Prestige</span><span class="stat-val" id="s-prestige">0</span></div>
+    </div>
+
+    <div id="log-panel">
+      <div id="log-title">&#128225; COMMS LOG</div>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer">
+    <span id="milestone-text">Mine credits to expand your colony!</span>
+    <button id="prestige-btn" onclick="prestige()">&#9889; PRESTIGE</button>
+  </div>
+
+</div>
+
+<script>
+  // ─────────────────────────────────────────────
+  //  GAME STATE
+  // ─────────────────────────────────────────────
+  const G = {
+    credits:       0,
+    totalEarned:   0,
+    clicks:        0,
+    cps:           0,
+    clickPower:    1,
+    startTime:     Date.now(),
+    milestones:    0,
+    nextMilestone: 0,
+    prestigeCount: 0,
+
+    buildings: [
+      { id:'drill',   name:'Ore Drill',    desc:'+0.1 cps each',  base:10,     cps:0.1,  icon:'⛏',  count:0, mult:1.15 },
+      { id:'solar',   name:'Solar Array',  desc:'+0.5 cps each',  base:60,     cps:0.5,  icon:'☀',  count:0, mult:1.15 },
+      { id:'bot',     name:'Mining Bot',   desc:'+2 cps each',    base:300,    cps:2,    icon:'🤖', count:0, mult:1.15 },
+      { id:'reactor', name:'Fusion Core',  desc:'+10 cps each',   base:2000,   cps:10,   icon:'⚡', count:0, mult:1.15 },
+      { id:'warp',    name:'Warp Gate',    desc:'+50 cps each',   base:12000,  cps:50,   icon:'🌀', count:0, mult:1.15 },
+      { id:'dyson',   name:'Dyson Sphere', desc:'+300 cps each',  base:100000, cps:300,  icon:'🌟', count:0, mult:1.15 },
+    ],
+
+    milestoneList: [
+      { at:10,      msg:'First credits mined!',       type:'info' },
+      { at:100,     msg:'Colony established!',         type:'good' },
+      { at:1000,    msg:'Mining operations booming!',  type:'good' },
+      { at:10000,   msg:'Major colony expansion!',     type:'good' },
+      { at:100000,  msg:'Interstellar wealth!',        type:'good' },
+      { at:1000000, msg:'Galactic empire rising!',     type:'good' },
+    ],
+  };
+
+  // ─────────────────────────────────────────────
+  //  HELPERS
+  // ─────────────────────────────────────────────
+  function buildingCost(b) {
+    return Math.floor(b.base * Math.pow(b.mult, b.count));
+  }
+
+  function fmt(n) {
+    if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+    return Math.floor(n).toString();
+  }
+
+  function recalcCPS() {
+    G.cps = G.buildings.reduce((s, b) => s + b.cps * b.count, 0);
+    G.clickPower = Math.max(1, Math.floor(G.cps * 0.01 + 1));
+  }
+
+  // ─────────────────────────────────────────────
+  //  UI RENDERING
+  // ─────────────────────────────────────────────
+  function renderUI() {
+    document.getElementById('r-credits').textContent = fmt(G.credits);
+    document.getElementById('r-energy').textContent  = G.cps.toFixed(1) + '/s';
+    document.getElementById('r-pop').textContent     = G.buildings.reduce((s, b) => s + b.count, 0);
+
+    document.getElementById('s-total').textContent   = fmt(G.totalEarned);
+    document.getElementById('s-cps').textContent     = G.cps.toFixed(2);
+    document.getElementById('s-clicks').textContent  = fmt(G.clicks);
+    document.getElementById('s-mile').textContent    = G.milestones;
+    document.getElementById('s-prestige').textContent = G.prestigeCount;
+
+    const sec = Math.floor((Date.now() - G.startTime) / 1000);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    document.getElementById('s-time').textContent = h ? `${h}h ${m}m` : m ? `${m}m ${s}s` : `${s}s`;
+
+    G.buildings.forEach(b => {
+      const btn = document.getElementById('btn-' + b.id);
+      if (!btn) return;
+      btn.disabled = G.credits < buildingCost(b);
+      btn.querySelector('.upg-cost').textContent = fmt(buildingCost(b));
+      btn.querySelector('.upg-count').textContent = b.count;
+    });
+
+    const pb = document.getElementById('prestige-btn');
+    pb.classList.toggle('ready', G.totalEarned >= 1000000);
+
+    checkMilestones();
+  }
+
+  function checkMilestones() {
+    const ml = G.milestoneList[G.nextMilestone];
+    if (ml && G.totalEarned >= ml.at) {
+      addLog(ml.msg, ml.type);
+      G.milestones++;
+      G.nextMilestone++;
+      document.getElementById('milestone-text').textContent = ml.msg;
+    }
+  }
+
+  function addLog(msg, type) {
+    const log = document.getElementById('log');
+    const div = document.createElement('div');
+    div.className = 'log-line ' + (type || '');
+    div.textContent = '> ' + msg;
+    log.prepend(div);
+    while (log.children.length > 30) log.removeChild(log.lastChild);
+  }
+
+  // ─────────────────────────────────────────────
+  //  BUILD UPGRADES LIST
+  // ─────────────────────────────────────────────
+  function buildUpgrades() {
+    const cont = document.getElementById('upgrades');
+    cont.innerHTML = '';
+    G.buildings.forEach(b => {
+      const btn = document.createElement('button');
+      btn.className = 'upg-btn';
+      btn.id = 'btn-' + b.id;
+      btn.innerHTML = `
+        <div>
+          <div class="upg-name">${b.icon} ${b.name}</div>
+          <div class="upg-desc">${b.desc}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="upg-cost">${fmt(buildingCost(b))}</div>
+          <div class="upg-count">${b.count}</div>
+        </div>`;
+      btn.addEventListener('click', () => buyBuilding(b));
+      cont.appendChild(btn);
+    });
+  }
+
+  function buyBuilding(b) {
+    const c = buildingCost(b);
+    if (G.credits < c) return;
+    G.credits -= c;
+    b.count++;
+    recalcCPS();
+    addLog('Built ' + b.name + ' #' + b.count, 'good');
+    renderUI();
+  }
+
+  // ─────────────────────────────────────────────
+  //  CLICK HANDLER
+  // ─────────────────────────────────────────────
+  function handleClick(e) {
+    G.credits      += G.clickPower;
+    G.totalEarned  += G.clickPower;
+    G.clicks++;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    spawnFloat(e.clientX - rect.left, e.clientY - rect.top, '+' + G.clickPower, e.currentTarget);
+    renderUI();
+  }
+
+  function spawnFloat(x, y, txt, parent) {
+    const el = document.createElement('div');
+    el.className = 'floater';
+    el.textContent = txt;
+    el.style.cssText = `left:${x}px; top:${y - 10}px;`;
+    parent.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  // ─────────────────────────────────────────────
+  //  PRESTIGE
+  // ─────────────────────────────────────────────
+  function prestige() {
+    if (G.totalEarned < 1000000) return;
+    if (!confirm('PRESTIGE? All progress resets, but your click power is boosted permanently!')) return;
+
+    G.prestigeCount++;
+    G.credits = 0;
+    G.totalEarned = 0;
+    G.clicks = 0;
+    G.cps = 0;
+    G.nextMilestone = 0;
+    G.milestones = 0;
+    G.startTime = Date.now();
+    G.buildings.forEach(b => b.count = 0);
+    recalcCPS();
+
+    addLog('Prestige #' + G.prestigeCount + '! Bonus multiplier active!', 'good');
+    document.getElementById('milestone-text').textContent = 'Prestige #' + G.prestigeCount + ' complete!';
+    renderUI();
+  }
+
+  // ─────────────────────────────────────────────
+  //  CANVAS / PIXEL ART COLONY
+  // ─────────────────────────────────────────────
+  const canvas = document.getElementById('colony-canvas');
+  const ctx    = canvas.getContext('2d');
+  let stars    = [];
+  let frame    = 0;
+
+  function initCanvas() {
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    stars = Array.from({ length: 50 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height * 0.7,
+      r: Math.random() < 0.3 ? 2 : 1,
+      t: Math.random() * Math.PI * 2,
+    }));
+  }
+
+  function px(x, y, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(Math.round(x), Math.round(y), w, h);
+  }
+
+  function drawColony() {
+    if (!canvas.width) return;
+    const W = canvas.width, H = canvas.height;
+    const t = Date.now() / 1000;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Sky
+    ctx.fillStyle = '#050510';
+    ctx.fillRect(0, 0, W, H);
+
+    // Stars
+    stars.forEach(s => {
+      const a = 0.4 + 0.5 * Math.sin(s.t + t * 0.7);
+      ctx.fillStyle = `rgba(200,220,255,${a})`;
+      ctx.fillRect(Math.round(s.x), Math.round(s.y), s.r, s.r);
+    });
+
+    // Planet surface
+    const ground = Math.floor(H * 0.68);
+    px(0, ground, W, H - ground, '#1a0e0a');
+    px(0, ground, W, 3, '#3a2010');
+
+    // Craters
+    [
+      [W * 0.1, ground + 10, 14, 8],
+      [W * 0.5, ground + 18, 20, 10],
+      [W * 0.8, ground + 8,  10,  5],
+    ].forEach(([cx, cy, rw, rh]) => {
+      ctx.fillStyle   = '#120a06';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#2a1208';
+      ctx.lineWidth   = 1;
+      ctx.stroke();
+    });
+
+    // Base dome (always present)
+    drawDome(W * 0.5 - 20, ground - 44, 40, 44, '#223355', '#4477aa');
+
+    if (G.buildings[0].count > 0) drawDrill(W * 0.25, ground);
+    if (G.buildings[1].count > 0) drawSolar(W * 0.72, ground);
+    if (G.buildings[2].count > 0) drawBot(W * 0.38, ground, t);
+    if (G.buildings[3].count > 0) drawReactor(W * 0.15, ground, t);
+    if (G.buildings[4].count > 0) drawWarpGate(W * 0.82, ground, t);
+    if (G.buildings[5].count > 0) {
+      const grd = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, W * 0.6);
+      grd.addColorStop(0, 'rgba(255,200,0,0.15)');
+      grd.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, W, H * 0.7);
+    }
+
+    // HUD overlay
+    const totalBuildings = G.buildings.reduce((s, b) => s + b.count, 0);
+    ctx.fillStyle = 'rgba(0,255,255,0.5)';
+    ctx.font = '7px "Press Start 2P"';
+    ctx.textAlign = 'left';
+    ctx.fillText('BUILDINGS: ' + totalBuildings, 6, 14);
+    ctx.fillText('CPS: ' + G.cps.toFixed(1), 6, 26);
+  }
+
+  function drawDome(x, y, w, h, c1, c2) {
+    ctx.fillStyle = c1;
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + h, w / 2, h, 0, -Math.PI, 0);
+    ctx.fill();
+    ctx.strokeStyle = c2;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Dome window
+    ctx.fillStyle = 'rgba(100,200,255,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + h * 0.5, w * 0.25, h * 0.25, 0, -Math.PI, 0);
+    ctx.fill();
+    // Airlock door
+    px(x + w / 2 - 3, y + h - 10, 6, 10, '#112244');
+  }
+
+  function drawDrill(cx, ground) {
+    px(cx - 2, ground - 28, 4, 28, '#885522');
+    px(cx - 6, ground - 8,  12, 4, '#555555');
+    px(cx - 1, ground - 36, 2, 10, '#aa8844');
+    const a = Date.now() / 200;
+    ctx.save();
+    ctx.translate(cx, ground - 36);
+    ctx.rotate(a);
+    px(-3, -3, 6, 6, '#cc6600');
+    ctx.restore();
+  }
+
+  function drawSolar(sx, ground) {
+    px(sx - 1, ground - 30, 2, 30, '#444444');
+    [sx - 22, sx + 4].forEach(px2 => {
+      px(px2, ground - 30, 18, 12, '#1144aa');
+      for (let i = 0; i < 3; i++) px(px2 + 1 + i * 6, ground - 29, 4, 10, '#2266cc');
+    });
+  }
+
+  function drawBot(bx, ground, t) {
+    const bob = Math.sin(t * 2) * 2;
+    const by  = ground - 22 + bob;
+    px(bx - 6, by,       12, 16, '#557788');
+    px(bx - 4, by - 6,    8,  7, '#445566');
+    px(bx - 2, by - 5,    4,  3, '#ff4422');
+    px(bx - 8, by + 2,    2,  8, '#446655');
+    px(bx + 6, by + 2,    2,  8, '#446655');
+    px(bx - 4, by + 16,   3,  8, '#334455');
+    px(bx + 1, by + 16,   3,  8, '#334455');
+  }
+
+  function drawReactor(rx, ground, t) {
+    px(rx - 8,  ground - 36, 16, 36, '#334422');
+    px(rx - 10, ground - 40, 20,  8, '#445533');
+    px(rx - 6,  ground - 50, 12, 14, '#556644');
+    const g = 0.3 + 0.2 * Math.sin(t * 3);
+    ctx.fillStyle = `rgba(0,255,100,${g})`;
+    ctx.beginPath();
+    ctx.arc(rx, ground - 44, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawWarpGate(wx, ground, t) {
+    const a = t * 1.5;
+    ctx.strokeStyle = '#aa44ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(wx, ground - 30, 8, 24, a, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(170,68,255,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(wx, ground - 30, 14, 28, a + 0.5, 0, Math.PI * 2);
+    ctx.stroke();
+    const g2 = ctx.createRadialGradient(wx, ground - 30, 0, wx, ground - 30, 10);
+    g2.addColorStop(0, 'rgba(180,100,255,0.8)');
+    g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g2;
+    ctx.beginPath();
+    ctx.arc(wx, ground - 30, 10, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ─────────────────────────────────────────────
+  //  GAME LOOP
+  // ─────────────────────────────────────────────
+  const TICK_MS = 100;
+  const DT      = TICK_MS / 1000;
+
+  function gameLoop() {
+    G.credits     += G.cps * DT;
+    G.totalEarned += G.cps * DT;
+    frame++;
+    if (frame % 3 === 0) renderUI();
+    drawColony();
+  }
+
+  // ─────────────────────────────────────────────
+  //  INIT
+  // ─────────────────────────────────────────────
+  window.addEventListener('resize', initCanvas);
+  initCanvas();
+  buildUpgrades();
+  addLog('Colony initialized. Start mining!', 'info');
+  addLog('Click the planet view to mine credits.', 'info');
+  renderUI();
+  setInterval(gameLoop, TICK_MS);
+</script>
+</body>
+</html>
