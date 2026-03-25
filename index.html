@@ -14,7 +14,7 @@
       --cyan:#0ff; --yellow:#ff0; --green:#0f0; --orange:#fa0;
       --purple:#c8f; --red:#f55; --border:#1e1e4a; --dim:#446; --text:#bbd;
     }
-    html,body { min-height:100vh; background:var(--bg); color:var(--text); font-family:'Press Start 2P',monospace; font-size:7px; line-height:1.6; }
+    html, body { min-height:100vh; background:var(--bg); color:var(--text); font-family:'Press Start 2P',monospace; font-size:7px; line-height:1.6; }
 
     #wrap { display:grid; grid-template-columns:1fr 200px; grid-template-rows:auto 1fr auto; gap:6px; padding:6px; min-height:100vh; }
 
@@ -26,7 +26,7 @@
 
     #main { background:var(--bg2); border:2px solid var(--border); display:flex; flex-direction:column; gap:6px; padding:6px; }
 
-    #sw { position:relative; border:1px solid var(--border); height:240px; overflow:hidden; cursor:pointer; background:#03030f; }
+    #sw { position:relative; border:1px solid var(--border); height:260px; overflow:hidden; cursor:pointer; background:#03030f; }
     #sw:active { filter:brightness(1.4); }
     #gc { position:absolute; top:0; left:0; width:100%; height:100%; }
     #hint { position:absolute; bottom:5px; right:7px; font-size:5px; color:var(--dim); pointer-events:none; }
@@ -72,7 +72,7 @@
     @media (max-width:580px) {
       #wrap { grid-template-columns:1fr; }
       #side { grid-row:3; }
-      #sw   { height:180px; }
+      #sw   { height:190px; }
       #log  { max-height:80px; }
     }
   </style>
@@ -121,6 +121,7 @@
 
 </div>
 <script>
+  // ── GAME STATE ──────────────────────────────────────────────
   const G = {
     credits:0, total:0, clicks:0, cps:0, cp:1,
     start:Date.now(), miles:0, nextM:0, pc:0,
@@ -152,41 +153,39 @@
     return Math.floor(n)+'';
   }
   function recalc() {
-    G.cps = G.B.reduce((s,b)=>s+b.cps*b.count,0);
+    G.cps = G.B.reduce((s,b)=>s+b.cps*b.count, 0);
     G.cp  = Math.max(1, Math.floor(G.cps*0.01+1));
   }
   function ui() {
     document.getElementById('rc').textContent = fmt(G.credits);
     document.getElementById('re').textContent = G.cps.toFixed(1);
-    document.getElementById('rp').textContent = G.B.reduce((s,b)=>s+b.count,0);
+    document.getElementById('rp').textContent = G.B.reduce((s,b)=>s+b.count, 0);
     document.getElementById('s0').textContent = fmt(G.total);
     document.getElementById('s1').textContent = G.cps.toFixed(2);
     document.getElementById('s2').textContent = fmt(G.clicks);
     document.getElementById('s5').textContent = G.pc;
     const sec=Math.floor((Date.now()-G.start)/1000);
-    const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;
+    const h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60;
     document.getElementById('s3').textContent = h?`${h}h ${m}m`:m?`${m}m ${s}s`:`${s}s`;
     document.getElementById('s4').textContent = G.miles;
     G.B.forEach(b=>{
-      const btn=document.getElementById('b_'+b.id);
-      if (!btn) return;
-      btn.disabled=G.credits<bc(b);
-      btn.querySelector('.bc').textContent=fmt(bc(b));
-      btn.querySelector('.bk').textContent=b.count;
+      const btn=document.getElementById('b_'+b.id); if(!btn) return;
+      btn.disabled = G.credits < bc(b);
+      btn.querySelector('.bc').textContent = fmt(bc(b));
+      btn.querySelector('.bk').textContent = b.count;
     });
-    document.getElementById('pb').classList.toggle('rdy',G.total>=1e6);
+    document.getElementById('pb').classList.toggle('rdy', G.total>=1e6);
     const ml=G.ML[G.nextM];
-    if (ml&&G.total>=ml.at) {
-      addLog(ml.msg,ml.t); G.miles++; G.nextM++;
-      document.getElementById('ftxt').textContent=ml.msg;
+    if (ml && G.total>=ml.at) {
+      addLog(ml.msg, ml.t); G.miles++; G.nextM++;
+      document.getElementById('ftxt').textContent = ml.msg;
     }
   }
-  function addLog(msg,t) {
+  function addLog(msg, t) {
     const d=document.getElementById('log');
     const el=document.createElement('div');
     el.className='ll '+(t||'i'); el.textContent='> '+msg;
-    d.prepend(el);
-    while (d.children.length>30) d.removeChild(d.lastChild);
+    d.prepend(el); while(d.children.length>30) d.removeChild(d.lastChild);
   }
   function buildList() {
     const cont=document.getElementById('bl'); cont.innerHTML='';
@@ -195,7 +194,7 @@
       btn.className='bb'; btn.id='b_'+b.id;
       btn.innerHTML=`<div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div><div style="text-align:right"><div class="bc">${fmt(bc(b))}</div><div class="bk">${b.count}</div></div>`;
       btn.addEventListener('click',()=>{
-        const cost=bc(b); if(G.credits<cost)return;
+        const cost=bc(b); if(G.credits<cost) return;
         G.credits-=cost; b.count++; recalc();
         addLog('Built '+b.name+' #'+b.count,'g'); ui();
       });
@@ -209,8 +208,7 @@
     el.className='flt'; el.textContent='+'+G.cp;
     el.style.cssText=`left:${e.clientX-r.left}px;top:${e.clientY-r.top-10}px`;
     e.currentTarget.appendChild(el);
-    setTimeout(()=>el.remove(),1000);
-    ui();
+    setTimeout(()=>el.remove(), 1000); ui();
   }
   function prestige() {
     if (G.total<1e6) return;
@@ -219,20 +217,42 @@
     G.nextM=0; G.miles=0; G.start=Date.now();
     G.B.forEach(b=>b.count=0); recalc();
     addLog('Prestige #'+G.pc+' — colony reborn!','g');
-    document.getElementById('ftxt').textContent='Prestige #'+G.pc+'!';
-    ui();
+    document.getElementById('ftxt').textContent='Prestige #'+G.pc+'!'; ui();
   }
 
-  // ── CANVAS SCENE ──
+  // ── CANVAS SCENE ────────────────────────────────────────────
   const canvas=document.getElementById('gc');
   const ctx=canvas.getContext('2d');
-  let W=0,H=0;
-  const stars=[],sparks=[];
-  const rover={x:60,dir:1,speed:0.8,mining:false,mt:0};
-  const crew=[
-    {x:200,dir: 1,spd:.40,col:'#ff8888',ph:0},
-    {x:320,dir:-1,spd:.30,col:'#8888ff',ph:2},
-    {x:440,dir: 1,spd:.25,col:'#88ff88',ph:4},
+  let W=0, H=0;
+  const stars=[], sparks=[];
+
+  // 6 always-visible walking colonists
+  const CREW=[
+    {x:0, dir: 1, spd:.55, col:'#ff9999', ph:0,   size:1.0, layer:0},
+    {x:0, dir:-1, spd:.40, col:'#9999ff', ph:2.1,  size:1.0, layer:0},
+    {x:0, dir: 1, spd:.30, col:'#99ff99', ph:4.2,  size:0.8, layer:1},
+    {x:0, dir:-1, spd:.60, col:'#ffcc44', ph:1.0,  size:1.0, layer:0},
+    {x:0, dir: 1, spd:.25, col:'#ff88cc', ph:3.3,  size:0.8, layer:1},
+    {x:0, dir:-1, spd:.45, col:'#44ffee', ph:5.1,  size:1.0, layer:0},
+  ];
+
+  // 2 rovers
+  const ROVERS=[
+    {x:0, dir: 1, spd:.9, mining:false, mt:0, col:'#2a7a3a'},
+    {x:0, dir:-1, spd:.6, mining:false, mt:0, col:'#7a3a2a'},
+  ];
+
+  // Jetpack flyer
+  const JP={x:0, dir:1, spd:.7, y:0, ph:0};
+
+  // Supply drone
+  const DRONE={x:0, dir:1, spd:1.3, y:0};
+
+  // Small critters
+  const CRITTERS=[
+    {x:0, dir: 1, spd:.9,  ph:0,   col:'#888844'},
+    {x:0, dir:-1, spd:1.2, ph:3.0, col:'#887744'},
+    {x:0, dir: 1, spd:.7,  ph:1.5, col:'#668844'},
   ];
 
   function resize() {
@@ -240,75 +260,124 @@
     W=sw.clientWidth; H=sw.clientHeight;
     canvas.width=W; canvas.height=H;
     stars.length=0;
-    for (let i=0;i<55;i++) stars.push({x:Math.random()*W,y:Math.random()*H*.62,r:Math.random()<.25?2:1,ph:Math.random()*6.28});
-    rover.x=W*.08;
-    crew[0].x=W*.45; crew[1].x=W*.58; crew[2].x=W*.70;
+    for (let i=0;i<60;i++) stars.push({x:Math.random()*W, y:Math.random()*H*.6, r:Math.random()<.25?2:1, ph:Math.random()*6.28});
+    CREW.forEach((c,i)=>{ c.x=W*(0.08+i*0.16); });
+    ROVERS[0].x=W*0.08; ROVERS[1].x=W*0.72;
+    JP.x=W*0.3; JP.y=0;
+    DRONE.x=0; DRONE.y=H*0.18;
+    CRITTERS.forEach((c,i)=>{ c.x=W*(0.05+i*0.3); });
   }
 
-  function GND() { return Math.floor(H*.67); }
+  function GND() { return Math.floor(H*0.67); }
   function px(x,y,w,h,c) { ctx.fillStyle=c; ctx.fillRect(Math.round(x),Math.round(y),w,h); }
 
-  function drawRover(t) {
-    const g=GND(),x=rover.x;
+  function drawColonist(col, size, ph, t) {
+    const leg=Math.sin(t*4.5+ph)*size;
+    const s=size;
+    px(Math.round(1*s+leg*3), -Math.round(14*s), Math.round(4*s), Math.round(14*s), col+'99');
+    px(Math.round(7*s-leg*3), -Math.round(14*s), Math.round(4*s), Math.round(14*s), col+'99');
+    px(0,                     -Math.round(30*s), Math.round(13*s), Math.round(17*s), col);
+    px(Math.round(1*s),       -Math.round(42*s), Math.round(11*s), Math.round(14*s), '#1a2a3a');
+    px(Math.round(3*s),       -Math.round(40*s), Math.round(7*s),  Math.round(10*s), '#6de8ff');
+    px(Math.round(-4*s),      -Math.round((29-leg*2)*s), Math.round(4*s), Math.round(9*s), col);
+    px(Math.round(13*s),      -Math.round((29+leg*2)*s), Math.round(4*s), Math.round(9*s), col);
+    px(Math.round(4*s),       -Math.round(39*s), Math.round(3*s), Math.round(4*s), 'rgba(180,240,255,0.45)');
+  }
+
+  function drawRover(rv, t) {
+    const g=GND();
     ctx.save();
-    if (rover.dir<0) { ctx.translate(x+30,g); ctx.scale(-1,1); }
-    else ctx.translate(x,g);
+    if (rv.dir<0) { ctx.translate(rv.x+30,g); ctx.scale(-1,1); }
+    else ctx.translate(rv.x,g);
     px(0,-12,9,12,'#3a3a3a'); px(21,-12,9,12,'#3a3a3a');
-    px(1,-13,7,3,'#666');     px(22,-13,7,3,'#666');
+    px(1,-13,7,3,'#777');     px(22,-13,7,3,'#777');
     px(8,-8,14,4,'#555');
-    px(3,-26,24,16,'#2a7a3a'); px(5,-28,20,5,'#3a8a4a');
-    px(7,-36,16,13,'#1a4a26');
+    px(3,-26,24,16,rv.col);   px(5,-28,20,5,rv.col+'dd');
+    px(7,-36,16,13,'#1a3a26');
     px(9,-34,5,9,'#5de8ff');  px(16,-34,5,9,'#5de8ff');
-    px(13,-44,2,10,'#888');   px(11,-46,6,3,'#f00');
-    const ang=rover.mining?Math.sin(t*6)*.5:-.15;
+    px(13,-44,2,10,'#888');   px(11,-46,6,3,'#f44');
+    const ang=rv.mining ? Math.sin(t*6)*0.55 : -0.15;
     ctx.save(); ctx.translate(27,-18); ctx.rotate(ang);
     px(0,-16,3,16,'#777'); px(-3,-18,9,5,'#ff9900');
     ctx.restore();
-    if (!rover.mining) {
-      ctx.fillStyle=`rgba(150,150,150,${.3+.2*Math.sin(t*8)})`;
-      ctx.fillRect(rover.dir>0?-4:28,-8,4,4);
+    if (!rv.mining) {
+      ctx.fillStyle=`rgba(160,160,160,${0.25+0.2*Math.sin(t*9)})`;
+      ctx.fillRect(rv.dir>0?-5:28, -9, 5, 5);
     }
     ctx.restore();
   }
 
-  function drawCrew(c,t) {
-    const g=GND(),leg=Math.sin(t*4.5+c.ph);
+  function drawJetpack(t) {
+    const g=GND();
+    const jx=JP.x, jy=g-55+JP.y;
+    const tilt=Math.sin(t*2+JP.ph)*0.18;
+    ctx.save(); ctx.translate(jx,jy); ctx.rotate(tilt);
+    if (JP.dir<0) ctx.scale(-1,1);
+    const fl=0.5+0.5*Math.sin(t*12);
+    ctx.fillStyle=`rgba(255,${Math.round(100+100*fl)},0,${0.7+0.3*fl})`;
+    ctx.fillRect(-2,8,5,Math.round(6+fl*4));
+    px(-2,8,5,5,'#ff6600');
+    px(-3,-4,8,12,'#556677'); px(-5,0,3,8,'#ff4400'); px(5,0,3,8,'#ff4400');
+    px(-4,-18,10,16,'#ff9999');
+    px(-3,-28,9,12,'#223344'); px(-1,-26,5,8,'#6de8ff');
+    ctx.restore();
+  }
+
+  function drawDrone(t) {
+    const dx=DRONE.x, dy=DRONE.y+Math.sin(t*2.5)*6;
+    const spin=Math.sin(t*20)*0.3;
+    ctx.save(); ctx.translate(dx,dy);
+    px(-10,-4,20,8,'#334455'); px(-6,-6,12,4,'#445566');
+    px(-14,-2,8,3,'#223344');  px(6,-2,8,3,'#223344'); px(-2,-8,3,8,'#223344');
+    ctx.save(); ctx.translate(-12,-2); ctx.rotate(spin);  px(-5,-1,10,2,'#aabbcc'); ctx.restore();
+    ctx.save(); ctx.translate( 12,-2); ctx.rotate(-spin); px(-5,-1,10,2,'#aabbcc'); ctx.restore();
+    ctx.fillStyle='rgba(100,200,255,0.3)'; ctx.fillRect(-3,4,6,14);
+    px(-5,18,10,8,'#8a6a20'); px(-4,19,8,2,'#aa8a30');
+    ctx.restore();
+  }
+
+  function drawCritter(c, t) {
+    const g=GND(), leg=Math.sin(t*8+c.ph);
     ctx.save();
-    if (c.dir<0) { ctx.translate(c.x+12,g); ctx.scale(-1,1); ctx.translate(-6,0); }
+    if (c.dir<0) { ctx.translate(c.x+8,g); ctx.scale(-1,1); }
     else ctx.translate(c.x,g);
-    px(1+leg*3,-14,4,14,c.col+'99');
-    px(7-leg*3,-14,4,14,c.col+'99');
-    px(0,-30,13,17,c.col);
-    px(1,-42,11,14,'#1a2a3a'); px(3,-40,7,10,'#6de8ff');
-    px(-4,-29+leg*3,4,9,c.col); px(13,-29-leg*3,4,9,c.col);
-    px(4,-39,3,4,'rgba(180,240,255,0.4)');
+    px(0,-4,8,4,c.col); px(1+leg*2,-6,6,4,c.col+'cc');
+    px(1,-4+leg,2,4,'#666'); px(5,-4-leg,2,4,'#666');
+    px(6,-5,2,2,'#ff4');
     ctx.restore();
   }
 
   function drawScene() {
     if (!W||!H) return;
-    const t=Date.now()/1000,g=GND();
+    const t=Date.now()/1000, g=GND();
     ctx.clearRect(0,0,W,H);
-    ctx.fillStyle='#03030f'; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#060618'; ctx.fillRect(0,H*.3,W,H*.4);
-    ctx.fillStyle='rgba(60,0,100,.06)';  ctx.fillRect(W*.05,H*.05,W*.35,H*.35);
-    ctx.fillStyle='rgba(0,40,100,.06)';  ctx.fillRect(W*.55,H*.08,W*.4,H*.3);
 
+    // Sky
+    ctx.fillStyle='#03030f'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#060618'; ctx.fillRect(0,H*0.3,W,H*0.4);
+    ctx.fillStyle='rgba(60,0,100,.06)';  ctx.fillRect(W*0.05,H*0.05,W*0.35,H*0.35);
+    ctx.fillStyle='rgba(0,40,100,.06)';  ctx.fillRect(W*0.55,H*0.08,W*0.40,H*0.30);
+
+    // Stars
     for (const s of stars) {
-      ctx.fillStyle=`rgba(210,220,255,${.25+.65*Math.sin(s.ph+t*.6)})`;
+      ctx.fillStyle=`rgba(210,220,255,${0.2+0.7*Math.sin(s.ph+t*0.6)})`;
       ctx.fillRect(Math.round(s.x),Math.round(s.y),s.r,s.r);
     }
 
-    ctx.fillStyle='#1e1535'; ctx.beginPath(); ctx.arc(W*.12,H*.14,20,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#130e25'; ctx.beginPath(); ctx.arc(W*.12+7,H*.14-5,8,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#2a2050'; ctx.beginPath(); ctx.arc(W*.85,H*.10,13,0,Math.PI*2); ctx.fill();
+    // Moons
+    ctx.fillStyle='#1e1535'; ctx.beginPath(); ctx.arc(W*0.12,H*0.14,20,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#130e25'; ctx.beginPath(); ctx.arc(W*0.12+7,H*0.14-5,8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#2a2050'; ctx.beginPath(); ctx.arc(W*0.85,H*0.10,13,0,Math.PI*2); ctx.fill();
 
+    // Dyson glow
     if (G.B[7].count>0) {
-      ctx.fillStyle='rgba(255,185,0,.07)'; ctx.fillRect(0,0,W,H*.65);
-      ctx.fillStyle='rgba(255,185,0,.10)'; ctx.fillRect(W*.25,0,W*.5,H*.4);
+      ctx.fillStyle='rgba(255,185,0,.07)'; ctx.fillRect(0,0,W,H*0.65);
+      ctx.fillStyle='rgba(255,185,0,.10)'; ctx.fillRect(W*0.25,0,W*0.5,H*0.4);
     }
+
+    // Warp gate
     if (G.B[6].count>0) {
-      const wx=W*.9,wy=g-50,pa=t*1.3;
+      const wx=W*0.9, wy=g-50, pa=t*1.3;
       ctx.strokeStyle='#9933ff'; ctx.lineWidth=2.5;
       ctx.beginPath(); ctx.ellipse(wx,wy,11,30,pa,0,Math.PI*2); ctx.stroke();
       ctx.strokeStyle='rgba(140,60,255,.3)'; ctx.lineWidth=1;
@@ -317,111 +386,157 @@
       pg.addColorStop(0,'rgba(160,80,255,.7)'); pg.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=pg; ctx.beginPath(); ctx.arc(wx,wy,12,0,Math.PI*2); ctx.fill();
     }
+
+    // Mass driver
     if (G.B[5].count>0) {
       const rl=Math.sin(t*1.8)*2;
-      px(W*.06-1,g-55,15,55,'#2a3322'); px(W*.06-5,g-60,23,9,'#3a4432');
-      px(W*.06+4,g-76+rl,5,20,'#4a5442'); px(W*.06+2,g-82,9,10,'#2a3322');
+      px(W*0.06-1,g-55,15,55,'#2a3322'); px(W*0.06-5,g-60,23,9,'#3a4432');
+      px(W*0.06+4,g-76+rl,5,20,'#4a5442'); px(W*0.06+2,g-82,9,10,'#2a3322');
     }
 
+    // Supply drone — always flying
+    DRONE.x+=DRONE.spd*DRONE.dir;
+    if (DRONE.x>W+30) DRONE.dir=-1;
+    if (DRONE.x<-30)  DRONE.dir=1;
+    drawDrone(t);
+
+    // Ground
     px(0,g,W,H-g,'#100c07'); px(0,g,W,5,'#251404');
-    [[W*.03,6,'#181008'],[W*.20,4,'#1c1208'],[W*.44,9,'#141008'],
-     [W*.63,5,'#181008'],[W*.79,7,'#160d06'],[W*.93,4,'#181008']
+
+    // Rocks
+    [[W*0.03,6,'#181008'],[W*0.20,4,'#1c1208'],[W*0.44,9,'#141008'],
+     [W*0.63,5,'#181008'],[W*0.79,7,'#160d06'],[W*0.93,4,'#181008']
     ].forEach(([rx,rs,rc])=>{ px(rx,g-rs,rs*2,rs,rc); px(rx-2,g-rs+2,rs*2+4,rs-2,rc); });
 
-    [[W*.21,g+14,18,9],[W*.51,g+21,24,11],[W*.77,g+11,14,7]].forEach(([cx2,cy,rw,rh])=>{
+    // Craters
+    [[W*0.21,g+14,18,9],[W*0.51,g+21,24,11],[W*0.77,g+11,14,7]].forEach(([cx2,cy,rw,rh])=>{
       ctx.fillStyle='#0b0705'; ctx.beginPath(); ctx.ellipse(cx2,cy,rw,rh,0,0,Math.PI*2); ctx.fill();
       ctx.strokeStyle='#1c0d05'; ctx.lineWidth=1; ctx.stroke();
     });
 
+    // Ore deposits
     const oreN=Math.min(3+G.B[0].count,7);
     for (let i=0;i<oreN;i++) {
-      const ox=W*(.07+i*.13),pulse=.45+.45*Math.sin(t*2.2+i*1.3);
-      ctx.fillStyle=`rgba(255,155,0,${pulse*.65})`; ctx.fillRect(Math.round(ox)-4,g-6,8,6);
-      ctx.fillStyle='rgba(255,210,50,.9)';          ctx.fillRect(Math.round(ox)-1,g-5,3,4);
+      const ox=W*(0.07+i*0.13), pulse=0.45+0.45*Math.sin(t*2.2+i*1.3);
+      ctx.fillStyle=`rgba(255,155,0,${pulse*0.65})`; ctx.fillRect(Math.round(ox)-4,g-6,8,6);
+      ctx.fillStyle='rgba(255,210,50,.9)';            ctx.fillRect(Math.round(ox)-1,g-5,3,4);
     }
 
+    // Base dome
     ctx.fillStyle='#182840';
-    ctx.beginPath(); ctx.ellipse(W*.5,g,40,44,0,-Math.PI,0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(W*0.5,g,40,44,0,-Math.PI,0); ctx.fill();
     ctx.strokeStyle='#3a70c0'; ctx.lineWidth=2; ctx.stroke();
     ctx.fillStyle='rgba(80,200,255,.2)';
-    ctx.beginPath(); ctx.ellipse(W*.5,g-18,17,20,0,-Math.PI,0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(W*0.5,g-18,17,20,0,-Math.PI,0); ctx.fill();
     ctx.strokeStyle='rgba(80,200,255,.4)'; ctx.lineWidth=1; ctx.stroke();
-    px(W*.5-4,g-13,9,13,'#0a1520'); px(W*.5-3,g-12,7,2,'#1a3050');
+    px(W*0.5-4,g-13,9,13,'#0a1520'); px(W*0.5-3,g-12,7,2,'#1a3050');
 
+    // Ore drill
     if (G.B[0].count>0) {
-      const dx=W*.32;
+      const dx=W*0.32;
       px(dx-2,g-32,4,32,'#7a4a10'); px(dx-8,g-9,16,6,'#3a3a3a');
       ctx.save(); ctx.translate(dx,g-32); ctx.rotate(t*3.5);
       px(-5,-5,10,10,'#cc6600'); px(-2,-2,4,4,'#ffaa00'); ctx.restore();
       px(dx-1,g-40,2,10,'#aa7730');
-      if (Math.random()<.15) sparks.push({x:dx+(Math.random()-.5)*6,y:g-10,vy:-1.2,vx:0,life:20,col:'#ffaa00'});
+      if (Math.random()<0.12) sparks.push({x:dx+(Math.random()-.5)*6,y:g-10,vy:-1.2,vx:0,life:20,col:'#ffaa00'});
     }
+
+    // Solar panels
     if (G.B[1].count>0) {
-      const sx=W*.70;
-      px(sx-1,g-34,2,34,'#2a2a2a');
-      [sx-26,sx+4].forEach(spx=>{
+      const sx=W*0.70; px(sx-1,g-34,2,34,'#2a2a2a');
+      [sx-26, sx+4].forEach(spx=>{
         px(spx,g-34,22,14,'#0a35aa');
         for (let i=0;i<3;i++) px(spx+1+i*7,g-33,6,12,'#1550dd');
         px(spx,g-22,22,3,'#0a2a80');
       });
     }
+
+    // Fusion core
     if (G.B[4].count>0) {
-      const rx=W*.14,gv=.35+.3*Math.sin(t*3.2);
+      const rx=W*0.14, gv=0.35+0.3*Math.sin(t*3.2);
       px(rx-10,g-42,20,42,'#1e2e14'); px(rx-12,g-46,24,9,'#2a3e1e'); px(rx-7,g-58,14,16,'#364e28');
       ctx.fillStyle=`rgba(0,255,70,${gv})`; ctx.beginPath(); ctx.arc(rx,g-50,8,0,Math.PI*2); ctx.fill();
       ctx.fillStyle='rgba(0,255,70,.1)';    ctx.beginPath(); ctx.arc(rx,g-50,20,0,Math.PI*2); ctx.fill();
     }
+
+    // Astro bots
     if (G.B[3].count>0) {
-      [W*.37,W*.57].forEach((bx,bi)=>{
-        const bob=Math.sin(t*3.5+bi*2)*2.5,by=g-22+bob;
+      [W*0.37,W*0.57].forEach((bx,bi)=>{
+        const bob=Math.sin(t*3.5+bi*2)*2.5, by=g-22+bob;
         px(bx-6,by,11,15,'#3a4f66'); px(bx-4,by-7,8,8,'#2a3f55');
         px(bx-8,by+2,2,8,'#2a3f55'); px(bx+5,by+2,2,8,'#2a3f55');
         px(bx-4,by+15,2,8,'#1e3040'); px(bx+2,by+15,2,8,'#1e3040');
-        ctx.fillStyle=`rgba(255,50,0,${.5+.5*Math.sin(t*4+bi)})`;
+        ctx.fillStyle=`rgba(255,50,0,${0.5+0.5*Math.sin(t*4+bi)})`;
         ctx.fillRect(Math.round(bx)-1,Math.round(by)-5,3,3);
       });
     }
 
-    const crewVis=Math.min(G.B[2].count+G.B[3].count,3);
-    for (let i=0;i<crewVis;i++) {
-      const c=crew[i];
+    // Always-on crew
+    CREW.forEach(c=>{
       c.x+=c.spd*c.dir;
-      if (c.x>W*.92) c.dir=-1;
-      if (c.x<W*.03) c.dir=1;
-      drawCrew(c,t);
-    }
+      if (c.x>W*0.97) c.dir=-1;
+      if (c.x<W*0.01) c.dir=1;
+      ctx.save();
+      if (c.dir<0) { ctx.translate(c.x+Math.round(13*c.size),g); ctx.scale(-1,1); ctx.translate(-Math.round(6*c.size),0); }
+      else ctx.translate(c.x,g);
+      if (c.layer===1) ctx.globalAlpha=0.7;
+      drawColonist(c.col, c.size, c.ph, t);
+      ctx.globalAlpha=1;
+      ctx.restore();
+    });
 
+    // Jetpack flyer — always active
+    JP.x+=JP.spd*JP.dir;
+    JP.y=Math.sin(t*1.4+JP.ph)*18;
+    if (JP.x>W*0.95) JP.dir=-1;
+    if (JP.x<W*0.04) JP.dir=1;
+    drawJetpack(t);
+
+    // Critters — always scurrying
+    CRITTERS.forEach(c=>{
+      c.x+=c.spd*c.dir;
+      if (c.x>W*0.96) c.dir=-1;
+      if (c.x<W*0.01) c.dir=1;
+      drawCritter(c,t);
+    });
+
+    // Rovers — unlock with Mining Rover building
     if (G.B[2].count>0) {
-      rover.x+=rover.speed*rover.dir;
       const oc=Math.min(3+G.B[0].count,7);
-      let near=false;
-      for (let i=0;i<oc;i++) { if (Math.abs(rover.x+15-W*(.07+i*.13))<24) { near=true; break; } }
-      rover.mining=near;
-      if (near) {
-        rover.mt++;
-        if (rover.mt%25===0) sparks.push({x:rover.x+22+(Math.random()-.5)*8,y:g-14,vy:-1.8,vx:(Math.random()-.5)*2.5,life:45,col:'#ffaa00'});
-      } else rover.mt=0;
-      if (rover.x>W*.93) rover.dir=-1;
-      if (rover.x<W*.02) rover.dir=1;
-      drawRover(t);
+      ROVERS.forEach(rv=>{
+        rv.x+=rv.spd*rv.dir;
+        let near=false;
+        for (let i=0;i<oc;i++) { if (Math.abs(rv.x+15-W*(0.07+i*0.13))<24) { near=true; break; } }
+        rv.mining=near;
+        if (near) {
+          rv.mt++;
+          if (rv.mt%22===0) sparks.push({x:rv.x+22+(Math.random()-.5)*8,y:g-14,vy:-2,vx:(Math.random()-.5)*2.5,life:40,col:'#ffaa00'});
+        } else rv.mt=0;
+        if (rv.x>W*0.93) rv.dir=-1;
+        if (rv.x<W*0.01) rv.dir=1;
+        drawRover(rv,t);
+      });
     }
 
+    // Sparks / particles
     for (let i=sparks.length-1;i>=0;i--) {
-      const p=sparks[i];
-      p.x+=(p.vx||0); p.y+=p.vy; p.life--;
-      ctx.globalAlpha=p.life/45; ctx.fillStyle=p.col;
+      const p=sparks[i]; p.x+=(p.vx||0); p.y+=p.vy; p.life--;
+      ctx.globalAlpha=p.life/40; ctx.fillStyle=p.col;
       ctx.fillRect(Math.round(p.x),Math.round(p.y),3,3);
       ctx.globalAlpha=1;
       if (p.life<=0) sparks.splice(i,1);
     }
 
+    // HUD
     ctx.fillStyle='rgba(0,255,255,.5)';
     ctx.font='6px "Press Start 2P"'; ctx.textAlign='left';
-    ctx.fillText('BLDGS:'+G.B.reduce((s,b)=>s+b.count,0),5,13);
-    ctx.fillText('CPS:'+G.cps.toFixed(1),5,23);
-    if (rover.mining) { ctx.fillStyle='rgba(255,160,0,.9)'; ctx.fillText('MINING...',5,33); }
+    ctx.fillText('BLDGS:'+G.B.reduce((s,b)=>s+b.count,0), 5, 13);
+    ctx.fillText('CPS:'+G.cps.toFixed(1), 5, 23);
+    const mc=ROVERS.filter(r=>r.mining&&G.B[2].count>0).length;
+    if (mc>0) { ctx.fillStyle='rgba(255,160,0,.9)'; ctx.fillText('MINING x'+mc, 5, 33); }
   }
 
+  // ── INIT & LOOP ──────────────────────────────────────────────
   function init() {
     resize(); buildList();
     addLog('Colony systems online.','i');
@@ -430,7 +545,7 @@
   }
 
   window.addEventListener('resize', resize);
-  setInterval(()=>{ G.credits+=G.cps*.1; G.total+=G.cps*.1; ui(); drawScene(); },100);
+  setInterval(()=>{ G.credits+=G.cps*0.1; G.total+=G.cps*0.1; ui(); drawScene(); }, 100);
   setTimeout(init, 200);
 </script>
 </body>
